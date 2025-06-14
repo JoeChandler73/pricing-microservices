@@ -20,7 +20,6 @@ public static class Extensions
             .Configure<StatusOptions>(builder.Configuration.GetSection("Status"))
             .Configure<RabbitMqOptions>(builder.Configuration.GetSection("RabbitMq"))
             .AddSingleton<IMessageSerializer, JsonMessageSerializer>()
-            .AddSingleton<ITopicMapper, TopicMapper>()
             .AddSingleton<IMessageProducer, RabbitMqMessageProducer>()
             .AddSingleton<IMessageHandler<PriceEvent>, PriceEventHandler>()
             .AddSingleton<IMessageBroker>(provider =>

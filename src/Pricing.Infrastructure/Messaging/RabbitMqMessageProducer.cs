@@ -10,7 +10,6 @@ namespace Pricing.Infrastructure.Messaging;
 
 public class RabbitMqMessageProducer(
     IMessageSerializer _messageSerializer,
-    ITopicMapper _topicMapper,
     IOptions<RabbitMqOptions> _options,
     ILogger<RabbitMqMessageProducer> _logger) 
     : RabbitMqBase(_options), IMessageProducer
@@ -24,7 +23,14 @@ public class RabbitMqMessageProducer(
         
         var body = _messageSerializer.Serialize(message);
         
-        await channel.BasicPublishAsync(_options.Value.ExchangeName, message.Key, body);
+        var properties = new BasicProperties
+        {
+            ContentType = "application/json",
+            Type = typeof(TMessage).AssemblyQualifiedName
+        };
+
+        await channel.BasicPublishAsync(
+            _options.Value.ExchangeName, message.Key, true, properties, body);
         
         _logger.LogInformation("Message sent: {0}", message);
     }

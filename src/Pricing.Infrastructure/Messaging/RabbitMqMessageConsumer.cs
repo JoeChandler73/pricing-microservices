@@ -10,7 +10,6 @@ using RabbitMQ.Client.Events;
 namespace Pricing.Infrastructure.Messaging;
 
 public class RabbitMqMessageConsumer(
-    ITopicMapper _topicMapper,
     IMessageSerializer _messageSerializer,
     IOptions<RabbitMqOptions> _options,
     ILogger<RabbitMqMessageConsumer> _logger) 
@@ -22,14 +21,14 @@ public class RabbitMqMessageConsumer(
         
         await channel.QueueDeclareAsync(_options.Value.QueueName, durable: true, exclusive: false, autoDelete: false, arguments: null);
         
-        foreach (var topicMapping in _options.Value.RoutingKeys.Split(','))
-            await channel.QueueBindAsync(queue: _options.Value.QueueName, exchange: _options.Value.ExchangeName, routingKey: topicMapping);
+        foreach (var routingKey in _options.Value.RoutingKeys.Split(','))
+            await channel.QueueBindAsync(queue: _options.Value.QueueName, exchange: _options.Value.ExchangeName, routingKey: routingKey);
         
         var consumer = new AsyncEventingBasicConsumer(channel);
         consumer.ReceivedAsync += async (sender, args) =>
         {
-            var messageType = _topicMapper.MapTopicToType(args.RoutingKey);
-            var message = _messageSerializer.Deserialize(args.Body.ToArray(), messageType);
+            var messageType = Type.GetType(args.BasicProperties.Type!);
+            var message = _messageSerializer.Deserialize(args.Body.ToArray(), messageType!);
             
             try
             {
