@@ -20,7 +20,7 @@ public class RabbitMqMessageProducer(
     public async Task Publish<TMessage>(TMessage message) where TMessage : IMessage
     {
         var channel = await GetChannelAsync();
-        
+
         var body = _messageSerializer.Serialize(message);
         
         var properties = new BasicProperties

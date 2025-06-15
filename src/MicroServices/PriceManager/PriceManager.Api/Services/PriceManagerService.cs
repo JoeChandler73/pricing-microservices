@@ -1,10 +1,11 @@
+using PriceManager.Api.MessageHandlers;
+using Pricing.Application.Commands;
 using Pricing.Application.Messaging;
 
 namespace PriceManager.Api.Services;
 
 public class PriceManagerService(
     IMessageConsumer _messageConsumer,
-    IMessageBroker _messageBroker,
     ILogger<PriceManagerService> _logger) 
     : BackgroundService
 {
@@ -12,7 +13,8 @@ public class PriceManagerService(
     {
         _logger.LogInformation("Starting Price Manager.");
         
-        _messageConsumer.StartAsync(_messageBroker, stoppingToken);
+        _messageConsumer.Subscribe<SubscribeCommand, SubscribeCommandHandler>();
+        _messageConsumer.StartAsync(stoppingToken);
         
         return Task.CompletedTask;
     }

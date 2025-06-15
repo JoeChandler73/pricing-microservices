@@ -1,10 +1,11 @@
+using DatabaseManager.Api.MessageHandlers;
+using Pricing.Application.Events;
 using Pricing.Application.Messaging;
 
 namespace DatabaseManager.Api.Services;
 
 public class DatabaseManagerService(
     IMessageConsumer _messageConsumer,
-    IMessageBroker _messageBroker,
     ILogger<DatabaseManagerService> _logger) 
     : BackgroundService
 {
@@ -12,7 +13,8 @@ public class DatabaseManagerService(
     {
         _logger.LogInformation("Starting Database Manager");
         
-        _messageConsumer.StartAsync(_messageBroker, stoppingToken);
+        _messageConsumer.Subscribe<PriceEvent, PriceEventHandler>();
+        _messageConsumer.StartAsync(stoppingToken);
         
         return Task.CompletedTask;
     }

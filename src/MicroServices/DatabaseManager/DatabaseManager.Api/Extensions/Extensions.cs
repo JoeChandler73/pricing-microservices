@@ -1,8 +1,6 @@
 using DatabaseManager.Api.MessageHandlers;
 using DatabaseManager.Api.Services;
 using Pricing.Application.Configuration;
-using Pricing.Application.Events;
-using Pricing.Application.MessageHandlers;
 using Pricing.Application.Messaging;
 using Pricing.Application.Serialization;
 using Pricing.Application.Services;
@@ -21,13 +19,7 @@ public static class Extensions
             .Configure<RabbitMqOptions>(builder.Configuration.GetSection("RabbitMq"))
             .AddSingleton<IMessageSerializer, JsonMessageSerializer>()
             .AddSingleton<IMessageProducer, RabbitMqMessageProducer>()
-            .AddSingleton<IMessageHandler<PriceEvent>, PriceEventHandler>()
-            .AddSingleton<IMessageBroker>(provider =>
-            {
-                var messageBroker = new RxMessageBroker();
-                messageBroker.Subscribe(provider.GetRequiredService<IMessageHandler<PriceEvent>>());
-                return messageBroker;
-            })
+            .AddSingleton<PriceEventHandler>()
             .AddSingleton<IMessageConsumer, RabbitMqMessageConsumer>()
             .AddHostedService<DatabaseManagerService>()
             .AddHostedService<StatusService>()

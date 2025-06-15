@@ -1,8 +1,5 @@
-using Pricing.Application.Events;
-using Pricing.Application.MessageHandlers;
 using Pricing.Application.Messaging;
 using Pricing.Application.Serialization;
-using Pricing.Application.Services;
 using Pricing.Infrastructure.Configuration;
 using Pricing.Infrastructure.Messaging;
 using Pricing.Infrastructure.Serialization;
@@ -19,13 +16,7 @@ public static class Extensions
             .Configure<RabbitMqOptions>(builder.Configuration.GetSection("RabbitMq"))
             .AddSingleton<IMessageSerializer, JsonMessageSerializer>()
             .AddSingleton<IMessageProducer, RabbitMqMessageProducer>()
-            .AddSingleton<IMessageHandler<StatusEvent>, StatusEvenHandler>()
-            .AddSingleton<IMessageBroker>(provider =>
-            {
-                var messageBroker = new RxMessageBroker();
-                messageBroker.Subscribe(provider.GetRequiredService<IMessageHandler<StatusEvent>>());
-                return messageBroker;
-            })
+            .AddSingleton<StatusEvenHandler>()
             .AddSingleton<IMessageConsumer, RabbitMqMessageConsumer>()
             .AddHostedService<SystemManagerService>()
             .AddOpenApi()

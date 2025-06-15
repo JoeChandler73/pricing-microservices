@@ -1,10 +1,11 @@
+using Pricing.Application.Events;
 using Pricing.Application.Messaging;
+using SystemManager.Api.MessageHandlers;
 
 namespace SystemManager.Api.Services;
 
 public class SystemManagerService(
     IMessageConsumer _messageConsumer,
-    IMessageBroker _messageBroker,
     ILogger<SystemManagerService> _logger) 
     : BackgroundService
 {
@@ -12,7 +13,8 @@ public class SystemManagerService(
     {
         _logger.LogInformation("Starting System Manager");
         
-        _messageConsumer.StartAsync(_messageBroker, stoppingToken);
+        _messageConsumer.Subscribe<StatusEvent, StatusEvenHandler>();
+        _messageConsumer.StartAsync(stoppingToken);
         
         return Task.CompletedTask;
     }
