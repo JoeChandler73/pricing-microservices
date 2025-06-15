@@ -59,6 +59,7 @@ public class RabbitMqMessageConsumer(
         try
         {
             await ProcessMessage(messageTypeName, args.Body.ToArray()).ConfigureAwait(false);
+            await ((AsyncDefaultBasicConsumer) sender).Channel.BasicAckAsync(args.DeliveryTag, multiple: false);
         }
         catch (Exception exception)
         {
@@ -70,22 +71,19 @@ public class RabbitMqMessageConsumer(
     {
         if (_handlerTypes.TryGetValue(messageTypeName, out var handlerTypes))
         {
-            if (_handlerTypes.ContainsKey(messageTypeName))
+            using var scope = _serviceScopeFactory.CreateScope();
+            foreach (var handlerType in handlerTypes)
             {
-                using var scope = _serviceScopeFactory.CreateScope();
-                foreach (var handlerType in handlerTypes)
-                {
-                    var handler = scope.ServiceProvider.GetService(handlerType);
-                            
-                    if(handler == null)
-                        continue;
-                            
-                    var messageType = _messageTypes.SingleOrDefault(t => t.AssemblyQualifiedName == messageTypeName);
-                    var @message = _messageSerializer.Deserialize(messageBytes, messageType!);
-                    var concreteType = typeof(IMessageHandler<>).MakeGenericType(messageType!);
+                var handler = scope.ServiceProvider.GetService(handlerType);
+                        
+                if(handler == null)
+                    continue;
+                        
+                var messageType = _messageTypes.SingleOrDefault(t => t.AssemblyQualifiedName == messageTypeName);
+                var @message = _messageSerializer.Deserialize(messageBytes, messageType!);
+                var concreteType = typeof(IMessageHandler<>).MakeGenericType(messageType!);
 
-                    await (Task)concreteType.GetMethod("HandleAsync").Invoke(handler, [message]);
-                }
+                await (Task)concreteType.GetMethod("HandleAsync").Invoke(handler, [message]);
             }
         }
     }
