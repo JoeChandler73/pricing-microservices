@@ -5,7 +5,7 @@ using Pricing.Application.Messaging;
 namespace PriceManager.Api.Services;
 
 public class PriceManagerService(
-    IMessageConsumer _messageConsumer,
+    IMessageBus messageBus,
     ILogger<PriceManagerService> _logger) 
     : BackgroundService
 {
@@ -13,9 +13,17 @@ public class PriceManagerService(
     {
         _logger.LogInformation("Starting Price Manager.");
         
-        _messageConsumer.Subscribe<SubscribeCommand, SubscribeCommandHandler>();
-        _messageConsumer.StartAsync(stoppingToken);
+        messageBus.Subscribe<SubscribeCommand, SubscribeCommandHandler>();
+        messageBus.StartAsync(stoppingToken);
         
         return Task.CompletedTask;
+    }
+    
+    public override async Task StopAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("PriceManagerService is stopping.");
+
+        await messageBus.DisposeAsync();
+        await base.StopAsync(cancellationToken);
     }
 }

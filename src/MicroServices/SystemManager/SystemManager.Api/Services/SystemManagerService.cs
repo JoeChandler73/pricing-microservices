@@ -5,7 +5,7 @@ using SystemManager.Api.MessageHandlers;
 namespace SystemManager.Api.Services;
 
 public class SystemManagerService(
-    IMessageConsumer _messageConsumer,
+    IMessageBus messageBus,
     ILogger<SystemManagerService> _logger) 
     : BackgroundService
 {
@@ -13,9 +13,17 @@ public class SystemManagerService(
     {
         _logger.LogInformation("Starting System Manager");
         
-        _messageConsumer.Subscribe<StatusEvent, StatusEvenHandler>();
-        _messageConsumer.StartAsync(stoppingToken);
+        messageBus.Subscribe<StatusEvent, StatusEvenHandler>();
+        messageBus.StartAsync(stoppingToken);
         
         return Task.CompletedTask;
+    }
+    
+    public override async Task StopAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("PriceManagerService is stopping.");
+
+        await messageBus.DisposeAsync();
+        await base.StopAsync(cancellationToken);
     }
 }

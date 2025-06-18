@@ -1,12 +1,7 @@
 using PriceListener.Api.MessageHandlers;
 using PriceListener.Api.Services;
 using Pricing.Application.Configuration;
-using Pricing.Application.Messaging;
-using Pricing.Application.Serialization;
-using Pricing.Application.Services;
-using Pricing.Infrastructure.Configuration;
-using Pricing.Infrastructure.Messaging;
-using Pricing.Infrastructure.Serialization;
+using Pricing.Infrastructure.Extensions;
 
 namespace PriceListener.Api.Extensions;
 
@@ -14,15 +9,13 @@ public static class Extensions
 {
     public static WebApplicationBuilder AddServices(this WebApplicationBuilder builder)
     {
+        builder.AddRabbitMessageBus();
+        builder.AddStatusService();
+        
         builder.Services
             .Configure<StatusOptions>(builder.Configuration.GetSection("Status"))
-            .Configure<RabbitMqOptions>(builder.Configuration.GetSection("RabbitMq"))
-            .AddSingleton<IMessageSerializer, JsonMessageSerializer>()
-            .AddSingleton<IMessageProducer, RabbitMqMessageProducer>()
-            .AddSingleton<PriceEventHandler>()
-            .AddSingleton<IMessageConsumer, RabbitMqMessageConsumer>()
             .AddHostedService<PriceListenerService>()
-            .AddHostedService<StatusService>()
+            .AddSingleton<PriceEventHandler>()
             .AddOpenApi()
             .AddEndpointsApiExplorer()
             .AddSwaggerGen();

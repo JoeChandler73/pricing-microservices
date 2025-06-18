@@ -5,7 +5,7 @@ using Pricing.Application.Messaging;
 namespace PriceListener.Api.Services;
 
 public class PriceListenerService(
-    IMessageConsumer _messageConsumer,
+    IMessageBus messageBus,
     ILogger<PriceListenerService> _logger) 
     : BackgroundService
 {
@@ -13,9 +13,17 @@ public class PriceListenerService(
     {
         _logger.LogInformation("Starting Price Listener");
         
-        _messageConsumer.Subscribe<PriceEvent, PriceEventHandler>();
-        _messageConsumer.StartAsync(stoppingToken);
+        messageBus.Subscribe<PriceEvent, PriceEventHandler>();
+        messageBus.StartAsync(stoppingToken);
         
         return Task.CompletedTask;
+    }
+    
+    public override async Task StopAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("PriceListenerService is stopping.");
+
+        await messageBus.DisposeAsync();
+        await base.StopAsync(cancellationToken);
     }
 }

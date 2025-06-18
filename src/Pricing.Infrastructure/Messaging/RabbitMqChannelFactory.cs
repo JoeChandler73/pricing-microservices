@@ -4,12 +4,12 @@ using RabbitMQ.Client;
 
 namespace Pricing.Infrastructure.Messaging;
 
-public abstract class RabbitMqBase(IOptions<RabbitMqOptions> _options) : IAsyncDisposable
+public class RabbitMqChannelFactory(IOptions<RabbitMqOptions> _options) : IChannelFactory
 {
     private IConnection? _connection;
     private IChannel? _channel;
     
-    protected async Task<IChannel> GetChannelAsync()
+    public async Task<IChannel> GetChannelAsync()
     {
         if (!(_connection?.IsOpen ?? false))
         {
@@ -30,7 +30,7 @@ public abstract class RabbitMqBase(IOptions<RabbitMqOptions> _options) : IAsyncD
         
         return _channel!;
     }
-
+    
     public async ValueTask DisposeAsync()
     {
         if (_connection != null)

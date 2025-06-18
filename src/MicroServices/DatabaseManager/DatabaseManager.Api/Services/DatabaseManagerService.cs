@@ -5,7 +5,7 @@ using Pricing.Application.Messaging;
 namespace DatabaseManager.Api.Services;
 
 public class DatabaseManagerService(
-    IMessageConsumer _messageConsumer,
+    IMessageBus messageBus,
     ILogger<DatabaseManagerService> _logger) 
     : BackgroundService
 {
@@ -13,9 +13,17 @@ public class DatabaseManagerService(
     {
         _logger.LogInformation("Starting Database Manager");
         
-        _messageConsumer.Subscribe<PriceEvent, PriceEventHandler>();
-        _messageConsumer.StartAsync(stoppingToken);
+        messageBus.Subscribe<PriceEvent, PriceEventHandler>();
+        messageBus.StartAsync(stoppingToken);
         
         return Task.CompletedTask;
+    }
+    
+    public override async Task StopAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("DatabaseManagerService is stopping.");
+
+        await messageBus.DisposeAsync();
+        await base.StopAsync(cancellationToken);
     }
 }

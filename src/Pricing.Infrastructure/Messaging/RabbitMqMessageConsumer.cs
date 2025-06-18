@@ -12,11 +12,12 @@ using RabbitMQ.Client.Events;
 namespace Pricing.Infrastructure.Messaging;
 
 public class RabbitMqMessageConsumer(
+    IChannelFactory _channelFactory,
     IMessageSerializer _messageSerializer,
     IServiceScopeFactory _serviceScopeFactory,
     IOptions<RabbitMqOptions> _options,
     ILogger<RabbitMqMessageConsumer> _logger) 
-    : RabbitMqBase(_options), IMessageConsumer
+    : IMessageConsumer
 {
     private readonly List<Type> _messageTypes = new();
     private readonly Dictionary<string, List<Type>> _handlerTypes = new();
@@ -38,18 +39,22 @@ public class RabbitMqMessageConsumer(
     
     public async Task StartAsync(CancellationToken stoppingToken = default)
     {
-        var channel = await GetChannelAsync();
+        var channel = await _channelFactory.GetChannelAsync();
         
-        await channel.QueueDeclareAsync(_options.Value.QueueName, durable: true, exclusive: false, autoDelete: false, arguments: null);
+        await channel.QueueDeclareAsync(
+            _options.Value.QueueName, durable: true, exclusive: false, autoDelete: false, arguments: null);
         
-        foreach (var routingKey in _options.Value.RoutingKeys.Split(','))
-            await channel.QueueBindAsync(queue: _options.Value.QueueName, exchange: _options.Value.ExchangeName, routingKey: routingKey);
-        
+        foreach (var messageType in _messageTypes)
+        {
+            await channel.QueueBindAsync(
+                queue: _options.Value.QueueName, exchange: _options.Value.ExchangeName, routingKey: messageType.Name);
+        }
+
         var consumer = new AsyncEventingBasicConsumer(channel);
         consumer.ReceivedAsync += MessageReceived;
         
-        var consumerTag = 
-            await channel.BasicConsumeAsync(_options.Value.QueueName, false, consumer, cancellationToken: stoppingToken);
+        await channel.BasicConsumeAsync(
+            _options.Value.QueueName, false, consumer, cancellationToken: stoppingToken);
     }
     
     private async Task MessageReceived(object sender, BasicDeliverEventArgs args)
@@ -59,7 +64,7 @@ public class RabbitMqMessageConsumer(
         try
         {
             await ProcessMessage(messageTypeName, args.Body.ToArray()).ConfigureAwait(false);
-            await ((AsyncDefaultBasicConsumer) sender).Channel.BasicAckAsync(args.DeliveryTag, multiple: false);
+            await ((AsyncDefaultBasicConsumer)sender).Channel.BasicAckAsync(args.DeliveryTag, multiple: false);
         }
         catch (Exception exception)
         {
@@ -86,5 +91,10 @@ public class RabbitMqMessageConsumer(
                 await (Task)concreteType.GetMethod("HandleAsync").Invoke(handler, [message]);
             }
         }
+    }
+    
+    public async ValueTask DisposeAsync()
+    {
+        await _channelFactory.DisposeAsync();
     }
 }

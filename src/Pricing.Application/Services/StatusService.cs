@@ -8,7 +8,7 @@ using Pricing.Application.Messaging;
 namespace Pricing.Application.Services;
 
 public class StatusService(
-    IMessageProducer _messageProducer, 
+    IMessageBus messageBus, 
     IOptions<StatusOptions> _options,
     ILogger<StatusService> _logger) : BackgroundService
 {
@@ -24,13 +24,21 @@ public class StatusService(
             {
                 _logger.LogInformation("Sending status message.");
                 
-                await _messageProducer.Publish(CreateStatusEvent());
+                await messageBus.Publish(CreateStatusEvent());
             }
             catch (Exception e)
             {
                 _logger.LogError("StatusService failed to send status message: {0}", e.Message);
             }
         }
+    }
+
+    public override async Task StopAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("StatusService is stopping.");
+
+        await messageBus.DisposeAsync();
+        await base.StopAsync(cancellationToken);
     }
 
     private StatusEvent CreateStatusEvent()
